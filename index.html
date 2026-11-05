@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calculadora de tarifa VPM</title>
+<style>
+:root{
+  --bg:#eef2f6;--surface:#ffffff;--ink:#14213d;--muted:#5b6778;--line:#d3dbe5;
+  --accent:#14213d;--on-accent:#ffffff;--hl:#ffc93c;--on-hl:#14213d;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1522;--surface:#18222f;--ink:#eaf0f7;--muted:#9aa7b8;--line:#2b3849;
+    --accent:#ffc93c;--on-accent:#14213d;--hl:#ffc93c;--on-hl:#14213d;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1522;--surface:#18222f;--ink:#eaf0f7;--muted:#9aa7b8;--line:#2b3849;
+  --accent:#ffc93c;--on-accent:#14213d;--hl:#ffc93c;--on-hl:#14213d;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4;min-height:100vh;display:flex;justify-content:center;padding:20px 16px 32px}
+main{width:100%;max-width:420px}
+h1{font-size:1.35rem;margin:4px 0 16px;font-weight:700;letter-spacing:-.01em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px}
+input{width:100%;font:inherit;font-size:1.6rem;font-weight:600;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-variant-numeric:tabular-nums}
+input:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--hl);outline-offset:2px}
+details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+details .row{margin-top:12px}
+details input{font-size:1.1rem}
+.result{margin-top:16px;background:var(--hl);color:var(--on-hl);border-radius:14px;padding:18px 18px 16px}
+.result small{display:block;font-size:.9rem;opacity:.8}
+.total{font-size:2.8rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.total span{font-size:1.2rem;font-weight:600;margin-right:6px}
+dl{margin:16px 0 0;font-size:.95rem}
+dl div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+dt{color:var(--muted)}dd{margin:0;font-weight:600}
+.note{margin:10px 0 0;font-size:.85rem;color:var(--muted)}
+button{margin-top:16px;width:100%;font:inherit;font-weight:600;padding:12px;border-radius:10px;border:0;background:var(--accent);color:var(--on-accent);cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+  <h1>Calculadora de tarifa VPM</h1>
+  <section class="card" aria-label="Tiempo usado">
+    <div class="row">
+      <div><label for="h">Horas</label><input id="h" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+      <div><label for="m">Minutos</label><input id="m" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>
+    </div>
+    <details>
+      <summary>Cambiar tarifa o descuento</summary>
+      <div class="row">
+        <div><label for="r">S/ por minuto</label><input id="r" type="number" inputmode="decimal" min="0" step="0.01" value="0.07"></div>
+        <div><label for="d">Minutos de descuento</label><input id="d" type="number" inputmode="numeric" min="0" step="1" value="30"></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="result" aria-live="polite">
+    <small>Total a pagar</small>
+    <div class="total"><span>S/</span><b id="total">0.00</b></div>
+  </section>
+
+  <section class="card" style="margin-top:16px" aria-label="Detalle del cálculo">
+    <dl>
+      <div><dt>Tiempo total</dt><dd id="o-total">0 min</dd></div>
+      <div><dt>Descuento</dt><dd id="o-desc">− 30 min</dd></div>
+      <div><dt>Minutos a cobrar</dt><dd id="o-bill">0 min</dd></div>
+      <div><dt>Tarifa</dt><dd id="o-rate">S/ 0.07 por min</dd></div>
+    </dl>
+    <p class="note" id="formula">(0 − 30) × 0.07</p>
+    <button type="button" id="clear">Limpiar</button>
+  </section>
+</main>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var h=$("h"),m=$("m"),r=$("r"),d=$("d");
+  function num(el){var v=parseFloat(el.value);return isFinite(v)&&v>0?v:0}
+  function calc(){
+    var total=Math.round(num(h))*60+Math.round(num(m));
+    var desc=Math.round(num(d)),rate=num(r);
+    var bill=Math.max(0,total-desc);
+    var amount=Math.round(bill*rate*100)/100;
+    $("total").textContent=amount.toFixed(2);
+    $("o-total").textContent=total+" min";
+    $("o-desc").textContent="− "+desc+" min";
+    $("o-bill").textContent=bill+" min";
+    $("o-rate").textContent="S/ "+rate+" por min";
+    $("formula").textContent="("+total+" − "+desc+") × "+rate+" = S/ "+amount.toFixed(2)+
+      (total<desc?" (el tiempo no supera el descuento)":"");
+  }
+  [h,m,r,d].forEach(function(el){el.addEventListener("input",calc)});
+  $("clear").addEventListener("click",function(){h.value="";m.value="";h.focus();calc()});
+  calc();
+})();
+</script>
+</body>
+</html>
